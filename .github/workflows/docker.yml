@@ -37,6 +37,6 @@ jobs:
           file: ./dev/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: docker.io/tanwjie/bbdown:latest
-          cache-from: type=registry,ref=docker.io/tanwjie/bbdown:buildcache
-          cache-to: type=registry,ref=docker.io/tanwjie/bbdown:buildcache,mode=max
+          tags: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/bbdown:latest
+          cache-from: type=registry,ref=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/bbdown:buildcache
+          cache-to: type=registry,ref=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/bbdown:buildcache,mode=max
