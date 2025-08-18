@@ -14,11 +14,11 @@ RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o 
 WORKDIR /app
 
 # Copy only dev folder contents
-COPY ./dev/package.json ./
+COPY package.json ./
 RUN npm install --only=production && npm cache clean --force
 
 # Copy rest of files
-COPY ./dev/ ./
+COPY . ./
 
 # Provide yt-dlp and ffmpeg path compatibility for code
 RUN mkdir -p /app/bin /app/BB/windows/ffmpeg \
