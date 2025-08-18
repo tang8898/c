@@ -32,7 +32,8 @@
   const clearHistoryBtn = el('clearHistoryBtn');
   const messageBox = el('messageBox');
 
-  const HISTORY_KEY = 'peanutdl_bili_history_v1';
+  // 替换历史存储键名，避免带有品牌前缀
+  const HISTORY_KEY = '__video_downloader_bilibili_history__';
   let currentTaskId = null;
   let parsedInfo = null;
 
@@ -197,9 +198,8 @@ $(function() {
     const type = $('input[name="downloadType"]:checked').val();
     const audioFormat = $('#audioFormat').val() || 'mp3';
     try {
-      // 在已有的下载触发逻辑中注入audioFormat
-      window.__peanutdl_bili_hookAudioFormat = audioFormat;
-      window.__peanutdl_bili_hookType = type;
+      window.__downloader_bili_hookAudioFormat = audioFormat;
+      window.__downloader_bili_hookType = type;
     } catch (e) {}
   });
 });
@@ -209,8 +209,8 @@ $(function() {
   const originalEmit = window.emitBiliDownload;
   if (typeof originalEmit === 'function') {
     window.emitBiliDownload = function(params) {
-      const audioFormat = window.__peanutdl_bili_hookAudioFormat || 'mp3';
-      const type = window.__peanutdl_bili_hookType || params?.type;
+      const audioFormat = window.__downloader_bili_hookAudioFormat || 'mp3';
+      const type = window.__downloader_bili_hookType || params?.type;
       const merged = Object.assign({}, params, { audioFormat, type });
       return originalEmit(merged);
     };

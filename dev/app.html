@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-bs-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <title>视频下载工具</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdn.socket.io;" />
+  <link rel="icon" href="icon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background: radial-gradient(1200px 600px at 50% 0%, #0b2033 0%, #0a1520 40%, #0a0f16 100%);
+      min-height: 100vh;
+    }
+    .navbar-brand { font-weight: 700; letter-spacing: .5px; }
+    .hero {
+      padding: 64px 0 32px;
+      text-align: center;
+    }
+    .hero-title {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: clamp(32px, 6vw, 72px);
+      font-weight: 800;
+      letter-spacing: 4px;
+      text-shadow: 0 2px 20px rgba(0, 255, 255, .1), 0 0 2px rgba(255,255,255,.4);
+    }
+    .feature-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); }
+    .feature-card:hover { background: rgba(255,255,255,.06); border-color: rgba(0, 200, 255, .35); transform: translateY(-2px); transition: all .2s ease; }
+    .icon-box { width: 60px; height: 60px; display: grid; place-items: center; border-radius: 12px; margin: 0 auto 12px; }
+    .icon-blue { background: rgba(0, 200, 255, .12); color: #11c5ff; }
+    .icon-pink { background: rgba(255, 0, 120, .12); color: #ff4fa3; }
+    .icon-cyan { background: rgba(0, 255, 200, .12); color: #55ffd7; }
+    .muted { color: #a9b2ba; }
+    .section-title { font-weight: 700; }
+    .shadow-soft { box-shadow: 0 8px 40px rgba(0,0,0,.35); }
+    .footer { color: #7c8690; padding: 24px 0; }
+    .badge-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  </style>
+</head>
+
+<body>
+  <!-- 顶部导航 -->
+  <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom border-dark-subtle sticky-top">
+    <div class="container">
+      <a class="navbar-brand" href="#home">视频下载工具</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain" aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMain">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link active" href="#home">首页</a></li>
+          <li class="nav-item"><a class="nav-link" href="pages/bilibili.html">哔哩哔哩</a></li>
+          <li class="nav-item"><a class="nav-link" href="pages/douyin.html">抖音</a></li>
+          <li class="nav-item"><a class="nav-link" href="pages/cloud.html">云端硬盘</a></li>
+          <li class="nav-item"><a class="nav-link" href="#app">应用下载</a></li>
+        </ul>
+        <div class="d-flex align-items-center gap-3">
+          <!-- 连接状态提示 -->
+          <span class="small text-secondary">
+            <span id="connDot" class="badge-dot bg-danger"></span>
+            <span id="socket-status">Disconnected</span>
+          </span>
+          <!-- 简易图标（内联SVG） -->
+          <button type="button" class="btn text-secondary p-1" data-bs-toggle="modal" data-bs-target="#settingsModal" title="设置">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zm9.4 4a7.4 7.4 0 00-.1-1l2-1.5-2-3.4-2.4.9a7.8 7.8 0 00-1.7-1l-.3-2.6H9.1l-.3 2.6a7.8 7.8 0 00-1.7 1l-2.4-.9-2 3.4 2 1.5a7.4 7.4 0 000 2.1l-2 1.5 2 3.4 2.4-.9a7.8 7.8 0 001.7 1l.3 2.6h5.9l.3-2.6a7.8 7.8 0 001.7-1l2.4.9 2-3.4-2-1.5c.1-.3.1-.7.1-1.1z"/></svg>
+          </button>
+          <a class="text-secondary text-decoration-none" href="#lang" title="语言">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm7.9 9h-3.3a15 15 0 00-1.2-5.1A8.02 8.02 0 0119.9 11zM12 4c1.1 0 2.6 1.8 3.4 5H8.6C9.4 5.8 10.9 4 12 4zM6.6 12c0-.7.1-1.4.2-2h10.4c.1.6.2 1.3.2 2s-.1 1.4-.2 2H6.8a12.7 12.7 0 01-.2-2zm1 3h8.8c-.8 3.2-2.3 5-3.4 5s-2.6-1.8-3.4-5zM6.6 7.1A15 15 0 005.4 12c0 1.8.4 3.6 1.2 5-2-1.3-3.3-3.6-3.3-6s1.3-4.7 3.3-5.9zM18.6 17c.8-1.4 1.2-3.2 1.2-5s-.4-3.6-1.2-5c2 1.3 3.3 3.6 3.3 6s-1.3 4.7-3.3 6z"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 顶部横幅 -->
+  <section id="home" class="hero container text-center">
+    <h1 class="hero-title text-white">视频下载工具</h1>
+    <p class="lead muted">多平台视频下载与云端传输工具集</p>
+  </section>
+
+  <!-- 主功能卡片 -->
+  <section class="container pb-4">
+    <div class="row g-4">
+      <!-- Bilibili -->
+      <div class="col-12 col-md-6 col-lg-4">
+        <a href="pages/bilibili.html" class="text-decoration-none">
+          <div class="card feature-card text-center p-4 shadow-soft h-100">
+            <div class="icon-box icon-blue">
+              <!-- 播放图标 -->
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+            <h4 class="text-info mb-1">哔哩哔哩 (Bilibili)</h4>
+            <div class="muted">B站视频下载工具</div>
+          </div>
+        </a>
+      </div>
+      <!-- Douyin -->
+      <div class="col-12 col-md-6 col-lg-4">
+        <a href="pages/douyin.html" class="text-decoration-none">
+          <div class="card feature-card text-center p-4 shadow-soft h-100">
+            <div class="icon-box icon-pink">
+              <!-- 音符图标 -->
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
+            </div>
+            <h4 class="text-danger mb-1">抖音 (Douyin)</h4>
+            <div class="muted">抖音视频下载工具</div>
+          </div>
+        </a>
+      </div>
+      <!-- Cloud -->
+      <div class="col-12 col-md-6 col-lg-4">
+        <a href="pages/cloud.html" class="text-decoration-none">
+          <div class="card feature-card text-center p-4 shadow-soft h-100">
+            <div class="icon-box icon-cyan">
+              <!-- 云朵图标 -->
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19h13a4 4 0 000-8 5.5 5.5 0 00-10-1A4 4 0 006 19z"/></svg>
+            </div>
+            <h4 class="text-primary mb-1">云端硬盘</h4>
+            <div class="muted">大文件传输与云存储</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 服务控制台（可折叠） -->
+  <section class="container my-4" id="console">
+    <div class="accordion" id="acc">
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="headingOne">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+            服务控制台（联调与调试）
+          </button>
+        </h2>
+        <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#acc">
+          <div class="accordion-body">
+            <div class="p-2">
+              <div class="d-grid gap-2 shadow bg-body-tertiary rounded">
+                <button type="button" id="myButton" class="btn btn-success">Clear browser cache</button>
+              </div>
+              <div class="alert alert-info mt-4 shadow bg-body-tertiary rounded" role="alert">
+                Connection Status: <strong id="socket-status-dup"></strong>
+              </div>
+
+              <div class="alert alert-primary shadow bg-body-tertiary rounded" role="alert">
+                视频下载服务正在运行中
+              </div>
+              <div class="progress mb-4" role="progressbar" aria-label="Animated striped example" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+              </div>
+
+              <!-- 功能操作区（保持 ID 兼容现有 renderer.js） -->
+              <div class="row g-3">
+                <div class="col-12 col-lg-6">
+                  <div class="card shadow">
+                    <div class="card-header">1) 设置 User-Agent</div>
+                    <div class="card-body">
+                      <div class="input-group">
+                        <input id="uaInput" type="text" class="form-control" placeholder="Mozilla/5.0 ...">
+                        <button id="setUaBtn" class="btn btn-outline-secondary">设置UA</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-12 col-lg-6">
+                  <div class="card shadow">
+                    <div class="card-header">2) 打开 URL</div>
+                    <div class="card-body">
+                      <div class="input-group">
+                        <input id="openUrlInput" type="text" class="form-control" placeholder="https://example.com">
+                        <button id="openUrlBtn" class="btn btn-outline-secondary">打开URL</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <div class="card shadow mt-3">
+                    <div class="card-header">3) 抓取页面 HTML</div>
+                    <div class="card-body">
+                      <div class="input-group mb-2">
+                        <input id="urlInput" type="text" class="form-control" placeholder="https://example.com">
+                        <button id="fetchHtmlBtn" class="btn btn-primary">获取HTML</button>
+                      </div>
+                      <textarea id="htmlOutput" class="form-control" rows="8" placeholder="返回的 HTML 将显示在此处"></textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-12 col-lg-6">
+                  <div class="card shadow mt-3">
+                    <div class="card-header">4) 浏览器窗口列表</div>
+                    <div class="card-body">
+                      <button id="listWindowsBtn" class="btn btn-outline-info mb-2">获取窗口列表</button>
+                      <pre id="windowsOutput" class="bg-dark text-white p-2 rounded" style="min-height: 120px;">无</pre>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-12 col-lg-6">
+                  <div class="card shadow mt-3">
+                    <div class="card-header">5) Cookie 操作</div>
+                    <div class="card-body">
+                      <div class="row g-2 mb-2">
+                        <div class="col-12">
+                          <input id="cookieUrlInput" class="form-control" placeholder="https://example.com">
+                        </div>
+                        <div class="col-6">
+                          <input id="cookieNameInput" class="form-control" placeholder="cookie 名称">
+                        </div>
+                        <div class="col-6">
+                          <input id="cookieValueInput" class="form-control" placeholder="cookie 值">
+                        </div>
+                      </div>
+                      <div class="d-flex gap-2">
+                        <button id="setCookieBtn" class="btn btn-outline-success">设置 Cookie</button>
+                        <button id="getCookiesBtn" class="btn btn-outline-warning">获取 Cookie</button>
+                      </div>
+                      <pre id="cookiesOutput" class="bg-dark text-white p-2 rounded mt-2" style="min-height: 100px;">无</pre>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <div id="messageBox" class="alert alert-secondary mt-3" role="alert">Ready.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer border-top border-dark-subtle mt-4">
+    <div class="container d-flex justify-content-between">
+      <span>© 2024</span>
+      <span class="small"></span>
+    </div>
+  </footer>
+
+  <!-- 设置弹窗：下载目录设置 -->
+  <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="settingsModalLabel">设置</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="downloadDirInput" class="form-label">下载目录</label>
+            <div class="input-group">
+              <input type="text" class="form-control" id="downloadDirInput" placeholder="例如：D:\\Downloads">
+              <button class="btn btn-outline-secondary" id="chooseDirBtn" type="button">选择</button>
+            </div>
+            <div class="form-text">若留空则使用默认下载目录</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary" id="saveSettingsBtn">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Web 预览下直接用 CDN 版本的 socket.io-client（与 2.x 兼容） -->
+  <script src="node_modules/socket.io-client/dist/socket.io.js"></script>
+  <script src="renderer.js"></script>
+  <script src="node_modules/jquery/dist/jquery.min.js"></script>
+  <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+  <script>
+    // 让导航栏上的连接小圆点同步状态文本
+    document.addEventListener('DOMContentLoaded', () => {
+      const statusEl = document.getElementById('socket-status');
+      const statusDup = document.getElementById('socket-status-dup');
+      const dot = document.getElementById('connDot');
+      const sync = () => {
+        const txt = statusEl?.textContent?.trim();
+        if (statusDup) statusDup.textContent = txt || '';
+        if (dot) dot.className = 'badge-dot ' + (txt === 'Connected' ? 'bg-success' : 'bg-danger');
+      };
+      const mo = new MutationObserver(sync);
+      if (statusEl) mo.observe(statusEl, { subtree: true, characterData: true, childList: true });
+      sync();
+
+      // 设置：本地存储与下发到后端
+      const STORAGE_KEY = 'video_downloader_settings_v1';
+      const input = document.getElementById('downloadDirInput');
+      const saveBtn = document.getElementById('saveSettingsBtn');
+      const chooseBtn = document.getElementById('chooseDirBtn');
+
+      // 读取本地设置
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        if (saved.downloadDir) input.value = saved.downloadDir;
+      } catch (e) {}
+
+      // 连接 socket
+      let socket;
+      if (typeof io === 'function') {
+        socket = io({ transports: ['websocket', 'polling'] });
+      }
+
+      // 保存设置并通知后端
+      saveBtn?.addEventListener('click', () => {
+        const dir = (input?.value || '').trim();
+        const settings = { downloadDir: dir };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+        try { socket && socket.emit('Set_Download_Dir', settings); } catch(e) {}
+        // 关闭弹窗
+        const modalEl = document.getElementById('settingsModal');
+        if (modalEl) {
+          const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+          modal.hide();
+        }
+      });
+
+      // 选择目录（Web 版无目录选择器，这里提示用户手动填写；Electron 可通过 preload 调用系统对话框，暂留）
+      chooseBtn?.addEventListener('click', () => {
+        alert('请在输入框中手动填写下载目录路径，例如 D:\\Downloads');
+      });
+    });
+  </script>
+</body>
+</html>

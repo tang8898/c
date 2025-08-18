@@ -30,13 +30,15 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push (linux/amd64)
+      - name: Build and push (linux/amd64, arm64)
         uses: docker/build-push-action@v6
         with:
           context: ./dev
           file: ./dev/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/bbdown:latest
+          tags: |
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/bbdown:latest
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/bbdown:${{ github.sha }}
           cache-from: type=registry,ref=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/bbdown:buildcache
           cache-to: type=registry,ref=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/bbdown:buildcache,mode=max

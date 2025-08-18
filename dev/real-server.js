@@ -55,7 +55,7 @@ const server = http.createServer((req, res) => {
   
   // 默认 Socket.IO 服务器响应
   res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Real PeanutDL Socket.IO server is running');
+  res.end('Video Downloader Socket.IO server is running');
 });
 
 const io = socketio(server, {
@@ -127,6 +127,8 @@ io.on('connection', (socket) => {
       const args = [
         '--dump-json',
         '--no-download',
+        '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        '--add-header', 'Referer:https://www.bilibili.com',
         cleanUrl
       ];
 
@@ -268,7 +270,8 @@ io.on('connection', (socket) => {
       if (type !== 'audio') {
         args.push('--merge-output-format', 'mp4');
       }
-      // 设置 Referer，提升 B站可访问性
+      // 设置 UA 和 Referer，提升 B站可访问性
+      args.push('--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
       args.push('--add-header', 'Referer:https://www.bilibili.com');
 
       const ytdlp = spawn(YTDLP_PATH, args, {
@@ -658,5 +661,7 @@ function sanitizeFilename(filename) {
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 20427;
 const HOST = '0.0.0.0';
 server.listen(PORT, HOST, () => {
-  console.log(`Real PeanutDL Socket.IO server listening on http://${HOST}:${PORT}`);
+  console.log(`Video Downloader Socket.IO server listening on http://${HOST}:${PORT}`);
 });
+// 将日志中的 PeanutDL 或站点字样替换为通用描述
+console.log(`[Server] Ready. Use the web UI to parse and download videos.`);
