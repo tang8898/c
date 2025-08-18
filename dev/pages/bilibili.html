@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>哔哩哔哩下载 - PeanutDL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdn.socket.io;" />
+  <link rel="icon" href="../icon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background: radial-gradient(1200px 600px at 50% 0%, #0b2033 0%, #0a1520 40%, #0a0f16 100%);
+      min-height: 100vh;
+    }
+    .navbar-brand { font-weight: 700; letter-spacing: .5px; }
+    .feature-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); }
+    .video-card { 
+      background: rgba(255,255,255,.05); 
+      border: 1px solid rgba(255,255,255,.1); 
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .video-thumbnail {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      background: rgba(255,255,255,.1);
+    }
+    .format-selector {
+      background: rgba(255,255,255,.08);
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    .download-progress {
+      background: rgba(0,255,200,.1);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    .badge-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .shadow-soft { box-shadow: 0 8px 40px rgba(0,0,0,.35); }
+    .url-input { font-family: ui-monospace, monospace; }
+  </style>
+</head>
+
+<body>
+  <!-- 顶部导航 -->
+  <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom border-dark-subtle">
+    <div class="container">
+      <a class="navbar-brand" href="../index.html">PeanutDL</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link" href="../index.html">首页</a></li>
+          <li class="nav-item"><a class="nav-link active" href="bilibili.html">哔哩哔哩</a></li>
+          <li class="nav-item"><a class="nav-link" href="douyin.html">抖音</a></li>
+          <li class="nav-item"><a class="nav-link" href="cloud.html">云端硬盘</a></li>
+        </ul>
+        <div class="d-flex align-items-center gap-3">
+          <span class="small text-secondary">
+            <span id="connDot" class="badge-dot bg-danger"></span>
+            <span id="socket-status">Disconnected</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <!-- 页面标题 -->
+    <div class="text-center mb-4">
+      <h1 class="display-6 mb-2">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="#11c5ff" class="me-2">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        哔哩哔哩视频下载
+      </h1>
+      <p class="text-muted">支持B站视频、番剧、纪录片等内容下载</p>
+    </div>
+
+    <!-- URL 输入区 -->
+    <div class="row justify-content-center mb-4">
+      <div class="col-12 col-lg-8">
+        <div class="card feature-card shadow-soft">
+          <div class="card-body">
+            <h5 class="card-title mb-3">
+              <i class="bi bi-link-45deg"></i> 视频链接
+            </h5>
+            <div class="input-group mb-3">
+              <input type="text" id="videoUrl" class="form-control url-input" 
+                     placeholder="粘贴 B站视频链接（如：https://www.bilibili.com/video/BV1...）">
+              <button class="btn btn-primary" id="parseBtn">
+                <span class="spinner-border spinner-border-sm d-none me-2" id="parseSpinner"></span>
+                解析视频
+              </button>
+            </div>
+            <div class="small text-muted">
+              支持的链接格式：
+              <code>bilibili.com/video/BV...</code> 
+              <code>b23.tv/...</code> 
+              <code>bilibili.com/bangumi/play/ep...</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 视频信息展示区 -->
+    <div id="videoInfo" class="d-none mb-4">
+      <div class="row">
+        <div class="col-12 col-lg-4 mb-3">
+          <div class="video-card shadow-soft">
+            <img id="videoThumbnail" src="" alt="视频封面" class="video-thumbnail">
+            <div class="p-3">
+              <h6 id="videoTitle" class="mb-2">视频标题</h6>
+              <div class="text-muted small">
+                <div>UP主: <span id="videoAuthor">-</span></div>
+                <div>时长: <span id="videoDuration">-</span></div>
+                <div>播放: <span id="videoViews">-</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-12 col-lg-8">
+          <div class="format-selector shadow-soft">
+            <h6 id="formatSelectorTitle" class="mb-3">选择下载格式</h6>
+            
+            <!-- 视频格式选择（默认显示） -->
+            <div id="videoQualitySection" class="mb-3">
+              <label class="form-label">视频质量</label>
+              <select class="form-select" id="videoQuality">
+                <option value="1080p">1080P 高清</option>
+                <option value="720p">720P 高清</option>
+                <option value="480p">480P 清晰</option>
+                <option value="360p">360P 流畅</option>
+              </select>
+            </div>
+
+            <!-- 音频格式选择（默认显示） -->
+            <div id="audioQualitySection" class="mb-3">
+              <label class="form-label">音频质量</label>
+              <select class="form-select" id="audioQuality">
+                <option value="320k">320K 高品质</option>
+                <option value="192k">192K 标准</option>
+                <option value="128k">128K 省空间</option>
+              </select>
+            </div>
+
+            <!-- 音频格式选择（仅在仅音频时显示） -->
+            <div id="audioFormatSection" class="mb-3 d-none">
+              <label class="form-label">音频格式</label>
+              <select class="form-select" id="audioFormat">
+                <option value="mp3">MP3（推荐）</option>
+                <option value="m4a">M4A 高质量</option>
+                <option value="wav">WAV 无损</option>
+                <option value="flac">FLAC 无损</option>
+              </select>
+            </div>
+
+            <!-- 下载类型 -->
+            <div class="mb-3">
+              <label class="form-label">下载内容</label>
+              <div class="row">
+                <div class="col-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="downloadType" id="videoOnly" value="video">
+                    <label class="form-check-label" for="videoOnly">仅视频</label>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="downloadType" id="audioOnly" value="audio">
+                    <label class="form-check-label" for="audioOnly">仅音频</label>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="downloadType" id="both" value="both" checked>
+                    <label class="form-check-label" for="both">视频+音频</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 下载按钮 -->
+            <button class="btn btn-success btn-lg w-100" id="downloadBtn">
+              <span class="spinner-border spinner-border-sm d-none me-2" id="downloadSpinner"></span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="me-2">
+                <path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/>
+              </svg>
+              开始下载
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 下载进度区 -->
+    <div id="downloadProgress" class="d-none">
+      <div class="download-progress shadow-soft mb-4">
+        <h6 class="mb-3">下载进度</h6>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <span id="downloadFileName">正在下载...</span>
+            <span id="downloadPercent">0%</span>
+          </div>
+          <div class="progress">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
+                 id="progressBar" style="width: 0%"></div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-between text-muted small">
+          <span>速度: <span id="downloadSpeed">0 KB/s</span></span>
+          <span>剩余时间: <span id="remainingTime">计算中...</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 下载历史 -->
+    <div class="card feature-card shadow-soft">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">下载历史</h6>
+        <button class="btn btn-outline-secondary btn-sm" id="clearHistoryBtn">清空历史</button>
+      </div>
+      <div class="card-body">
+        <div id="downloadHistory" class="text-muted text-center py-4">
+          暂无下载记录
+        </div>
+      </div>
+    </div>
+
+    <!-- 状态提示 -->
+    <div id="messageBox" class="alert alert-secondary mt-3" role="alert">
+      请输入B站视频链接开始使用
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../node_modules/socket.io-client/dist/socket.io.js"></script>
+  <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+  <script src="../node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+  <script src="bilibili.js"></script>
+</body>
+</html>

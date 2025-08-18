@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>抖音下载 - PeanutDL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdn.socket.io;" />
+  <link rel="icon" href="../icon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
+  <style>
+    body { background: radial-gradient(1200px 600px at 50% 0%, #0b2033 0%, #0a1520 40%, #0a0f16 100%); min-height:100vh; }
+    .feature-card { background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom border-dark-subtle">
+    <div class="container">
+      <a class="navbar-brand" href="../index.html">PeanutDL</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link" href="../index.html">首页</a></li>
+          <li class="nav-item"><a class="nav-link" href="bilibili.html">哔哩哔哩</a></li>
+          <li class="nav-item"><a class="nav-link active" href="douyin.html">抖音</a></li>
+          <li class="nav-item"><a class="nav-link" href="cloud.html">云端硬盘</a></li>
+        </ul>
+        <span class="small text-secondary"><span id="connDot" class="badge-dot bg-danger"></span><span id="socket-status">Disconnected</span></span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <div class="text-center mb-4">
+      <h1 class="display-6 mb-2">抖音视频下载</h1>
+      <p class="text-muted">支持抖音视频链接解析下载，去水印</p>
+    </div>
+
+    <div class="row justify-content-center mb-4">
+      <div class="col-12 col-lg-8">
+        <div class="card feature-card">
+          <div class="card-body">
+            <div class="input-group">
+              <input id="dyUrl" type="text" class="form-control" placeholder="粘贴抖音分享链接">
+              <button id="dyParse" class="btn btn-primary">解析</button>
+            </div>
+            <div class="form-text">支持 douyin.com、v.douyin.com 短链</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="dyInfo" class="d-none card feature-card mb-3">
+      <div class="card-body">
+        <div class="d-flex gap-3 align-items-center">
+          <img id="dyCover" src="" width="160" height="90" style="object-fit:cover;border-radius:8px;"/>
+          <div class="flex-fill">
+            <div id="dyTitle" class="fw-semibold">-</div>
+            <div class="text-muted small">作者：<span id="dyAuthor">-</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 下载选项区域 -->
+    <div id="dyOptions" class="d-none card feature-card mb-3">
+      <div class="card-body">
+        <h6 class="card-title mb-3">下载设置</h6>
+        
+        <!-- 下载类型选择 -->
+        <div class="mb-3">
+          <label class="form-label">下载类型</label>
+          <div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="dyType" id="dyTypeVideo" value="video" checked>
+              <label class="form-check-label" for="dyTypeVideo">仅视频</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="dyType" id="dyTypeAudio" value="audio">
+              <label class="form-check-label" for="dyTypeAudio">仅音频</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="dyType" id="dyTypeBoth" value="both">
+              <label class="form-check-label" for="dyTypeBoth">视频+音频</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 音频选项（仅音频时显示） -->
+        <div id="dyAudioOptions" class="d-none mb-3">
+          <div class="row">
+            <div class="col-md-6">
+              <label for="dyAudioQuality" class="form-label">音频质量</label>
+              <select id="dyAudioQuality" class="form-select">
+                <option value="320k">320k (高质量)</option>
+                <option value="192k" selected>192k (标准)</option>
+                <option value="128k">128k (节省空间)</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label for="dyAudioFormat" class="form-label">音频格式</label>
+              <select id="dyAudioFormat" class="form-select">
+                <option value="mp3" selected>MP3</option>
+                <option value="m4a">M4A</option>
+                <option value="wav">WAV</option>
+                <option value="flac">FLAC</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 下载路径设置（解析成功后显示） -->
+        <div id="dyPathWrap" class="d-none mb-3">
+          <label for="dyDownloadPath" class="form-label">下载保存路径</label>
+          <div class="input-group">
+            <input id="dyDownloadPath" type="text" class="form-control" placeholder="例如：C:\\Users\\Public\\Videos">
+            <button id="dySetPath" class="btn btn-outline-secondary">应用</button>
+          </div>
+          <div id="dyPathHint" class="form-text">不填则使用默认下载目录（可在首页设置中修改）。</div>
+        </div>
+
+        <button id="dyDownload" class="btn btn-success w-100">开始下载</button>
+      </div>
+    </div>
+
+    <div id="dyProgress" class="d-none card feature-card mb-3">
+      <div class="card-body">
+        <div class="progress mb-2"><div id="dyBar" class="progress-bar" style="width:0%"></div></div>
+        <div class="small text-muted"><span id="dyPercent">0%</span> · <span id="dySpeed">0 KB/s</span></div>
+      </div>
+    </div>
+
+    <div id="dyMsg" class="alert alert-secondary mt-3">请输入抖音链接开始使用</div>
+  </div>
+
+  <script src="../node_modules/socket.io-client/dist/socket.io.js"></script>
+  <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+  <script src="../node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+  <script src="douyin.js"></script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>云端硬盘 - PeanutDL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdn.socket.io;" />
+  <link rel="icon" href="../icon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
+  <style>
+    body { background: radial-gradient(1200px 600px at 50% 0%, #0b2033 0%, #0a1520 40%, #0a0f16 100%); min-height:100vh; }
+    .feature-card { background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom border-dark-subtle">
+    <div class="container">
+      <a class="navbar-brand" href="../index.html">PeanutDL</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link" href="../index.html">首页</a></li>
+          <li class="nav-item"><a class="nav-link" href="bilibili.html">哔哩哔哩</a></li>
+          <li class="nav-item"><a class="nav-link" href="douyin.html">抖音</a></li>
+          <li class="nav-item"><a class="nav-link active" href="cloud.html">云端硬盘</a></li>
+        </ul>
+        <span class="small text-secondary"><span id="connDot" class="badge-dot bg-danger"></span><span id="socket-status">Disconnected</span></span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <div class="text-center mb-4">
+      <h1 class="display-6 mb-2">云端硬盘</h1>
+      <p class="text-muted">上传、管理下载的文件，支持断点续传</p>
+    </div>
+
+    <div class="card feature-card mb-3">
+      <div class="card-body">
+        <div class="d-flex gap-3 align-items-center">
+          <input id="fileInput" type="file" multiple class="form-control"/>
+          <button id="uploadBtn" class="btn btn-primary">上传</button>
+        </div>
+        <div class="progress mt-3 d-none" id="upWrap"><div id="upBar" class="progress-bar" style="width:0%"></div></div>
+        <div class="small text-muted mt-2" id="upMsg">选择文件后点击上传</div>
+      </div>
+    </div>
+
+    <div class="card feature-card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>文件列表</span>
+        <button id="refreshBtn" class="btn btn-outline-secondary btn-sm">刷新</button>
+      </div>
+      <div class="card-body" id="fileList">暂无文件</div>
+    </div>
+
+    <div id="cloudMsg" class="alert alert-secondary mt-3">-</div>
+  </div>
+
+  <script src="../node_modules/socket.io-client/dist/socket.io.js"></script>
+  <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+  <script src="../node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+  <script src="cloud.js"></script>
+</body>
+</html>

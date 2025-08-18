@@ -1,0 +1,23 @@
+# Global ignores
+.DS_Store
+Thumbs.db
+*.log
+
+# Node dependencies and build outputs
+node_modules/
+**/node_modules/
+**/dist/
+**/build/
+**/.cache/
+
+# Dev project specifics
+/dev/node_modules/
+/dev/bin/
+/dev/*.log
+/dev/.cache/
+/dev/out/
+/dev/dist/
+
+# Env files
+.env
+.env.*

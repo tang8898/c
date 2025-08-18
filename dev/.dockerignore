@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log
+Dockerfile
+.dockerignore
+BB/
+**/*.log
+**/.DS_Store
+download/
+cloud_storage/
