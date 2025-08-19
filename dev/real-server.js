@@ -127,8 +127,7 @@ io.on('connection', (socket) => {
       const args = [
         '--dump-json',
         '--no-download',
-        '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        '--add-header', 'Referer:https://www.bilibili.com',
+        ...commonYtdlpArgs(),
         cleanUrl
       ];
 
@@ -242,6 +241,8 @@ io.on('connection', (socket) => {
       // 构建下载参数
       const height = (vq?.replace('p', '') || '1080');
       const args = [cleanUrl];
+      // 将通用头参数置于最前
+      args.unshift(...commonYtdlpArgs());
       
       // 根据选择的质量和类型设置格式
       if (type === 'video') {
@@ -665,3 +666,21 @@ server.listen(PORT, HOST, () => {
 });
 // 将日志中的 PeanutDL 或站点字样替换为通用描述
 console.log(`[Server] Ready. Use the web UI to parse and download videos.`);
+
+// ... existing code ...
+const YTDLP_PATH = path.join(__dirname, 'bin', 'yt-dlp.exe');
+// 启动时尝试自更新 yt-dlp（容器环境下为可写二进制，若无则忽略）
+try {
+  if (fs.existsSync(YTDLP_PATH)) {
+    exec(`"${YTDLP_PATH}" -U`, (err, stdout, stderr) => {
+      if (err) {
+        console.warn('[yt-dlp] self-update failed (ignored):', err.message);
+      } else {
+        console.log('[yt-dlp] self-update:', (stdout || '').toString().trim());
+        if (stderr) console.log('[yt-dlp] self-update stderr:', stderr.toString().trim());
+      }
+    });
+  }
+} catch (e) {
+  console.warn('[yt-dlp] self-update exception (ignored):', e.message);
+}
